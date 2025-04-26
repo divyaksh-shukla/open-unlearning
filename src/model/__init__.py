@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def get_dtype(model_args):
     with open_dict(model_args):
         torch_dtype = model_args.pop("torch_dtype", None)
-    if model_args["attn_implementation"] == "flash_attention_2":
+    if model_args.get("attn_implementation", None) == "flash_attention_2":
         # This check handles https://github.com/Dao-AILab/flash-attention/blob/7153673c1a3c7753c38e4c10ef2c98a02be5f778/flash_attn/flash_attn_triton.py#L820
         # If you want to run at other precisions consider running "training or inference using
         # Automatic Mixed-Precision via the `with torch.autocast(device_type='torch_device'):`
@@ -68,7 +68,17 @@ def _add_or_replace_eos_token(tokenizer, eos_token: str) -> None:
 
 def get_tokenizer(tokenizer_cfg: DictConfig):
     try:
+        tokenizer_cfg['pretrained_model_name_or_path'] = "microsoft/phi-1_5"
         tokenizer = AutoTokenizer.from_pretrained(**tokenizer_cfg, cache_dir=hf_home)
+
+        if not hasattr(tokenizer, "chat_template") or tokenizer.chat_template is None:
+            tokenizer.chat_template = (
+                "{% for message in messages %}"
+                "{% if message['role'] == 'user' %}User: {{ message['content'] }}\n{% endif %}"
+                "{% if message['role'] == 'assistant' %}Assistant: {{ message['content'] }}\n{% endif %}"
+                "{% endfor %}"
+            )
+
     except Exception as e:
         error_message = (
             f"{'--' * 40}\n"
