@@ -39,13 +39,12 @@ for split in "${forget_retain_splits[@]}"; do
         # trainer.args.ddp_find_unused_parameters=true \
         # trainer.args.gradient_checkpointing=true
 
-        CUDA_VISIBLE_DEVICES=1 python src/eval.py experiment=eval/tofu/default.yaml \
+    
+        CUDA_VISIBLE_DEVICES=0 python src/eval.py experiment=eval/relu/default.yaml \
         forget_split=${forget_split} \
         task_name=tofu_${model}_${retain_split} \
         model=${model} \
-        model.model_args.pretrained_model_name_or_path=open-unlearning/tofu_Llama-2-7b-chat-hf_retain99
-        # model.model_args.pretrained_model_name_or_path=data_2/relu/llm_weights/ft_epoch5_lr1e-05_llama2-7b_${retain_split}_wd0.01_datasetqa_forget10/checkpoint-1124
-        # model.model_args.pretrained_model_name_or_path=saves/finetune/tofu_${model}_${retain_split}
+        model.model_args.pretrained_model_name_or_path=saves/finetune/tofu_${model}_${retain_split}
     done
 done
 
@@ -55,7 +54,7 @@ done
 # ########################################################################################################################
 
 
-for model in "${models[@]}"; do
+# for model in "${models[@]}"; do
 #     # CUDA_VISIBLE_DEVICES=0,1 accelerate launch --config_file configs/accelerate/default_config.yaml --main_process_port $MASTER_PORT \
 #     # src/train.py experiment=finetune/tofu/default.yaml \
 #     # task_name=tofu_${model}_full \
@@ -66,18 +65,17 @@ for model in "${models[@]}"; do
 #     # trainer.args.ddp_find_unused_parameters=true \
 #     # trainer.args.gradient_checkpointing=true
 
-    # Evaluate the full models on each forget split
-    for split in "${forget_retain_splits[@]}"; do
-        forget_split=$(echo $split | cut -d' ' -f1)
-        retain_split=$(echo $split | cut -d' ' -f2)
-        model_path=data_2/relu/llm_weights/ft_epoch5_lr1e-05_llama2-7b_full_wd0.01_datasetqa_forget10/checkpoint-1250
+#     # Evaluate the full models on each forget split
+#     for split in "${forget_retain_splits[@]}"; do
+#         forget_split=$(echo $split | cut -d' ' -f1)
+#         retain_split=$(echo $split | cut -d' ' -f2)
 
-        CUDA_VISIBLE_DEVICES=1 python src/eval.py experiment=eval/tofu/default.yaml \
-        forget_split=${forget_split} \
-        task_name=tofu_${model}_full_${forget_split} \
-        model=${model} \
-        model.model_args.pretrained_model_name_or_path=${model_path} \
-        retain_logs_path=saves/eval/tofu_${model}_${retain_split}/TOFU_EVAL.json \
-        paths.output_dir=saves/eval/tofu_${model}_full/evals_${forget_split}
-    done
-done
+#         CUDA_VISIBLE_DEVICES=0 python src/eval.py experiment=eval/tofu/default.yaml \
+#         forget_split=${forget_split} \
+#         task_name=tofu_${model}_full_${forget_split} \
+#         model=${model} \
+#         model.model_args.pretrained_model_name_or_path=saves/finetune/tofu_${model}_full \
+#         retain_logs_path=saves/eval/tofu_${model}_${retain_split}/TOFU_EVAL.json \
+#         paths.output_dir=saves/eval/tofu_${model}_full/evals_${forget_split}
+#     done
+# done

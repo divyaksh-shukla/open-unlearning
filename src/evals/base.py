@@ -85,6 +85,7 @@ class Evaluator:
             }
             metrics_args = self.eval_cfg.metrics[metric_name]
             _
+            # breakpoint()
             result = metric_fn(
                 model,
                 metric_name=metric_name,

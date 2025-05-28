@@ -1,0 +1,12 @@
+ReLU_cloze_forget:
+  handler: ClozeDataset
+  args:
+    hf_args:
+      name: "cloze"
+      split: "forget01_cloze"
+      path: "Exploration-Lab/ReLU"
+    question_key: "question"
+    answer_key: "answer"
+    mask_key: "mask"
+    blanks_key: "blanks"
+    max_length: 512

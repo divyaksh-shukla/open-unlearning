@@ -95,12 +95,67 @@ def evaluate_probability(model, batch):
     avg_losses = losses / num_token_gt
     normalized_probs = torch.exp(-avg_losses)
 
-    avg_losses = avg_losses.cpu().numpy().tolist()
-    normalized_probs = normalized_probs.cpu().numpy().tolist()
+    avg_losses = avg_losses.cpu().float().numpy().tolist()
+    normalized_probs = normalized_probs.cpu().float().numpy().tolist()
     return [
         {"prob": prob, "avg_loss": avg_loss}
         for prob, avg_loss in zip(normalized_probs, avg_losses)
     ]
+    
+def evaluate_correct_sequence_probability(model, batch):
+    """Evaluate the correct sequence probability for a given batch. This is used in the Cloze evaluation of ReLU benchmark."""
+    prompt = batch[0]
+    label = batch[1]
+    assert prompt.size(0) == 1, "Batch size of prompt must be 1 for this evaluation"
+    assert label.size(0) == 1, "Batch size of label must be 1 for this evaluation"
+    
+    # Check if model is in eval mode
+    if model.training:
+        print("Model is in training mode. Switching to eval mode.")
+        model.eval()
+    
+    # tokenize the prompt and label and move to model device
+    tokenized_prompt = tokenizer(
+        prompt, return_tensors="pt", padding=True, truncation=True
+    )
+    tokenized_label = tokenizer(label, return_tensors="pt", padding=True)
+    tokenized_prompt = {k: v.to(model.device) for k, v in tokenized_prompt.items()}
+    tokenized_label = {k: v.to(model.device) for k, v in tokenized_label.items()}
+    
+    # Compute the generated sequence probabilities
+    with torch.no_grad():
+        generated_logits_sequence = []
+        for idx in range(tokenized_label["input_ids"].shape[-1]):
+            outputs = model(**tokenized_prompt)
+            tokenized_prompt["input_ids"] = torch.cat(
+                [
+                    tokenized_prompt["input_ids"],
+                    tokenized_label["input_ids"][:, idx].unsqueeze(0),
+                ],
+                dim=1,
+            )
+            generated_logits_sequence.append(outputs.logits)
+    generated_logits_sequence = torch.cat(generated_logits_sequence, dim=1)
+    generated_probabilities = torch.nn.functional.softmax(
+        generated_logits_sequence, dim=-1
+    )
+    
+    # get the probability of the correct sequence
+    correct_sequence_probability = []
+    for idx in range(tokenized_label["input_ids"].shape[-1]):
+        correct_sequence_probability.append(
+            generated_probabilities[
+                0,
+                -len(tokenized_label["input_ids"][0]) + idx,
+                tokenized_label["input_ids"][0, idx],
+            ]
+        )
+    sequence_length = len(correct_sequence_probability)
+    sequence_probability = (
+        torch.log(torch.tensor(correct_sequence_probability)).sum().exp()
+    )
+    normalized_sequence_probability = sequence_probability ** (1 / sequence_length)
+    return {"correct_sequence_probability":correct_sequence_probability, "normalized_sequence_probability": normalized_sequence_probability, "generated_logits_sequence":generated_logits_sequence.cpu().numpy()}
 
 
 def eval_minKpc_neg_logprob(model, batch, percentile):

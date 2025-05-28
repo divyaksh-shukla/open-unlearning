@@ -1,0 +1,15 @@
+# @package eval.relu.metrics.forget_cloze_prob
+
+defaults:
+  - ../../data/datasets@datasets: ReLU_cloze_forget
+  - ../../collator@collators: DataCollatorForSupervisedDatasetwithIndex
+  # ^ get default dataset and generation config information
+
+handler: correct_sequence_probability
+batch_size: 1
+
+datasets:
+  ReLU_cloze_forget:
+    args:
+      hf_args:
+        split: ${eval.relu.forget_split}_cloze

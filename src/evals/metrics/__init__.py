@@ -13,6 +13,7 @@ from evals.metrics.privacy import (
     minKpc_negative_logprob,
     relative_auc,
 )
+from evals.metrics.cloze import correct_sequence_probability
 
 METRICS_REGISTRY: Dict[str, UnlearningMetric] = {}
 
@@ -51,3 +52,4 @@ _register_metric(forget_quality)
 _register_metric(hm_aggregate)
 _register_metric(minKpc_negative_logprob)
 _register_metric(relative_auc)
+_register_metric(correct_sequence_probability)

@@ -52,6 +52,65 @@ def get_model(model_cfg: DictConfig):
     tokenizer = get_tokenizer(tokenizer_args)
     return model, tokenizer
 
+def get_model_with_replaced_heads(model_cfg: DictConfig, finetuned_cfg: DictConfig, replace_cfg: DictConfig):
+    assert model_cfg is not None and model_cfg.model_args is not None, ValueError(
+        "Model config not found or model_args absent in configs/model."
+    )
+    assert finetuned_cfg is not None and finetuned_cfg.model_args is not None, ValueError(
+        "Model config not found or model_args absent in configs/model."
+    )
+    model_args = model_cfg.model_args
+    tokenizer_args = model_cfg.tokenizer_args
+    finetuned_model_args = finetuned_cfg.model_args
+    
+    torch_dtype = get_dtype(model_args)
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            torch_dtype=torch_dtype, **model_args, cache_dir=hf_home
+        )
+        finetuned_model = AutoModelForCausalLM.from_pretrained(
+            **finetuned_model_args, cache_dir=hf_home
+        )
+        # check if lm_head and embed are in the model
+        if not any("lm_head" in name for name, _ in model.named_parameters()):
+            raise ValueError(
+                f"Model {model_args.pretrained_model_name_or_path} does not have lm_head."
+            )
+        if not any("embed" in name for name, _ in model.named_parameters()):
+            raise ValueError(
+                f"Model {model_args.pretrained_model_name_or_path} does not have embed."
+            )
+        # Replace the heads of the model with the unlearned model
+        for name, param in model.named_parameters():
+            if "lm_head" in name and replace_cfg.get("replace_lm_head", True):
+                logger.info(f"Replacing {name}")
+                dtype = param.dtype
+                param.data = finetuned_model.lm_head.weight.data
+                if dtype == torch.float16:
+                    param.data = param.data.half()
+                elif dtype == torch.bfloat16:
+                    param.data = param.data.bfloat16()
+            elif "embed_tokens" in name and replace_cfg.get("replace_embed", True):
+                logger.info(f"Replacing {name}")
+                dtype = param.dtype
+                param.data = finetuned_model.model.embed_tokens.weight.data
+                if dtype == torch.float16:
+                    param.data = param.data.half()
+                elif dtype == torch.bfloat16:
+                    param.data = param.data.bfloat16()
+        
+        model.to("cuda")
+        # Delete the unlearned model to free up memory
+        del finetuned_model
+    except Exception as e:
+        logger.warning(
+            f"Model {model_args.pretrained_model_name_or_path} requested with {model_cfg.model_args}"
+        )
+        raise ValueError(
+            f"Error {e} while fetching model using AutoModelForCausalLM.from_pretrained()."
+        )
+    tokenizer = get_tokenizer(tokenizer_args)
+    return model, tokenizer
 
 def _add_or_replace_eos_token(tokenizer, eos_token: str) -> None:
     is_added = tokenizer.eos_token_id is None

@@ -13,12 +13,12 @@ args:
   ddp_find_unused_parameters: None
   gradient_checkpointing: False
   optim: paged_adamw_32bit
-  save_strategy: 'no'
+  save_strategy: 'epoch'
   save_only_model: True
   weight_decay: 0.00
   do_train: True
   do_eval: True
   eval_on_start: True
-  eval_strategy: epoch
+  eval_strategy: 'no'
   num_train_epochs: 10
   seed: 0

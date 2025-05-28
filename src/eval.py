@@ -1,7 +1,7 @@
 import hydra
 from omegaconf import DictConfig
 
-from model import get_model
+from model import get_model, get_model_with_replaced_heads
 from evals import get_evaluators
 
 
@@ -14,7 +14,14 @@ def main(cfg: DictConfig):
     model_cfg = cfg.model
     template_args = model_cfg.template_args
     assert model_cfg is not None, "Invalid model yaml passed in train config."
-    model, tokenizer = get_model(model_cfg)
+    
+    if "finetuned" in cfg and cfg.finetuned:
+        finetuned_cfg = cfg.finetuned
+        replace_cfg = cfg.replace
+        model, tokenizer = get_model_with_replaced_heads(model_cfg, finetuned_cfg, replace_cfg)
+    else:
+        model, tokenizer = get_model(model_cfg)
+    
 
     eval_cfgs = cfg.eval
     evaluators = get_evaluators(eval_cfgs)

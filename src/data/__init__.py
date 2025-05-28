@@ -11,6 +11,8 @@ from data.collators import (
 from data.unlearn import ForgetRetainDataset
 from data.pretraining import PretrainingDataset, CompletionDataset
 
+from data.relu import ClozeDataset
+
 DATASET_REGISTRY: Dict[str, Any] = {}
 COLLATOR_REGISTRY: Dict[str, Any] = {}
 
@@ -99,6 +101,8 @@ _register_data(QADataset)
 _register_data(QAwithIdkDataset)
 _register_data(PretrainingDataset)
 _register_data(CompletionDataset)
+
+_register_data(ClozeDataset)
 
 # Register composite datasets used in unlearning
 # groups: unlearn
