@@ -13,6 +13,9 @@ def load_hf_dataset(path, **kwargs):
     dataset = datasets.load_dataset(path, **kwargs)
     return dataset
 
+def load_hf_dataset_from_json(json_path, **kwargs):
+    dataset = datasets.load_dataset("json", data_files=json_path)['train']
+    return dataset
 
 def preprocess_chat_instance(
     tokenizer,

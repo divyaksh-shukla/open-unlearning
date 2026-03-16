@@ -1,7 +1,8 @@
 from typing import Dict, Any, Union
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from data.qa import QADataset, QAwithIdkDataset, QAwithAlternateDataset
+from data.mcqa import MCQADataset
 from data.collators import (
     DataCollatorForSupervisedDataset,
 )
@@ -30,7 +31,7 @@ def _load_single_dataset(dataset_name, dataset_cfg: DictConfig, **kwargs):
         raise NotImplementedError(
             f"{dataset_handler_name} not implemented or not registered"
         )
-    dataset_args = dataset_cfg.args
+    dataset_args = OmegaConf.to_container(dataset_cfg.args, resolve=True)
     return dataset_handler(**dataset_args, **kwargs)
 
 
@@ -73,7 +74,7 @@ def _get_single_collator(collator_name: str, collator_cfg: DictConfig, **kwargs)
         raise NotImplementedError(
             f"{collator_handler_name} not implemented or not registered"
         )
-    collator_args = collator_cfg.args
+    collator_args = OmegaConf.to_container(collator_cfg.args, resolve=True)
     return collator_handler(**collator_args, **kwargs)
 
 
@@ -96,6 +97,7 @@ _register_data(QAwithIdkDataset)
 _register_data(PretrainingDataset)
 _register_data(CompletionDataset)
 _register_data(QAwithAlternateDataset)
+_register_data(MCQADataset)
 
 # Register composite datasets used in unlearning
 # groups: unlearn

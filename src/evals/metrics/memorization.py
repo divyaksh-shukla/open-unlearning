@@ -9,6 +9,7 @@ from evals.metrics.utils import (
     eval_text_similarity,
     run_batchwise_evals,
     tokenwise_vocab_logprobs,
+    evaluate_mcqa_score,
 )
 from evals.metrics.base import unlearning_metric
 
@@ -267,3 +268,28 @@ def extraction_strength(model, **kwargs):
     )
     es_values = aggregate_to_1D(es_values)
     return {"agg_value": np.mean(es_values), "value_by_index": scores_by_index}
+
+@unlearning_metric(name="mcqa_performance")
+def mcqa_performance(model, **kwargs):
+    """Compute the probabilities by data points and report aggregated average"""
+    data = kwargs["data"]
+    collator = kwargs["collators"]
+    batch_size = kwargs["batch_size"]
+    tokenizer = kwargs["tokenizer"]
+
+    dataloader = DataLoader(data, batch_size=batch_size, collate_fn=collator)
+
+    fun_args = {"tokenizer": tokenizer}
+    scores_by_index = run_batchwise_evals(
+        model, dataloader, evaluate_mcqa_score, fun_args, "Calculating MCQA performance"
+    )
+    prob_values = np.array(
+        [
+            evals["prob"]
+            for evals in scores_by_index.values()
+            if evals["prob"] is not None
+        ]
+    )
+    prob_values = aggregate_to_1D(prob_values)
+    return {"agg_value": np.mean(prob_values), "value_by_index": scores_by_index}
+    
